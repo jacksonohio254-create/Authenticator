@@ -1,145 +1,153 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Secure Authenticator</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Authenticator</title>
 
 <link rel="manifest" href="manifest.json">
 
 <style>
-body{margin:0;font-family:system-ui;background:#0b1020;color:#fff}
-.screen{display:none;padding:20px}
-.card{background:#141b3a;padding:15px;border-radius:14px;margin-bottom:12px}
-input,button{width:100%;padding:10px;margin-top:8px;border-radius:10px;border:none}
-button{background:#4f7cff;color:white;font-weight:bold}
-.code{font-size:30px;letter-spacing:4px}
-.small{opacity:.7;font-size:12px}
+:root {
+  --bg:#0b0f1a;
+  --card:#151a33;
+  --accent:#4f7cff;
+}
+body {
+  margin:0;
+  background:var(--bg);
+  color:#fff;
+  font-family: system-ui, -apple-system;
+}
+header {
+  padding:18px;
+  font-size:22px;
+  font-weight:600;
+}
+.card {
+  background:var(--card);
+  margin:12px;
+  padding:16px;
+  border-radius:18px;
+}
+input,button {
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:14px;
+  margin-top:10px;
+  font-size:15px;
+}
+button {
+  background:var(--accent);
+  color:#fff;
+  font-weight:600;
+}
+.code {
+  font-size:34px;
+  letter-spacing:4px;
+  margin-top:6px;
+}
+.issuer {
+  opacity:.8;
+  font-size:14px;
+}
+.progress {
+  height:4px;
+  background:#2a2f55;
+  border-radius:5px;
+  overflow:hidden;
+  margin-top:10px;
+}
+.bar {
+  height:100%;
+  background:var(--accent);
+}
+.hidden { display:none; }
 </style>
 </head>
 <body>
 
-<!-- PIN LOCK -->
-<div id="lock" class="screen">
-  <h2>Enter PIN</h2>
-  <input id="pin" type="password" inputmode="numeric" maxlength="6">
-  <button onclick="unlock()">Unlock</button>
+<header>Authenticator</header>
+
+<div id="lock" class="card">
+  <h3>Verify to unlock</h3>
+  <button onclick="unlock()">Use device security</button>
 </div>
 
-<!-- APP -->
-<div id="app" class="screen">
-  <h2>Authenticator</h2>
-
+<div id="app" class="hidden">
   <div class="card">
-    <input id="name" placeholder="Account name">
-    <input id="secret" placeholder="Secret (Base32)">
-    <button onclick="addManual()">Add manually</button>
-    <input type="file" accept="image/*" onchange="scanQR(this)">
+    <input id="issuer" placeholder="Issuer (Google, Roblox)">
+    <input id="secret" placeholder="Secret key (Base32)">
+    <button onclick="add()">Add account</button>
   </div>
-
-  <div id="accounts"></div>
+  <div id="list"></div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
 
 <script>
-const enc = new TextEncoder(), dec = new TextDecoder();
-
-function encrypt(text,pin){
-  return btoa([...enc.encode(text)].map((b,i)=>b^(pin.charCodeAt(i%pin.length))).join(","));
-}
-function decrypt(data,pin){
-  return dec.decode(new Uint8Array(atob(data).split(",").map((b,i)=>b^(pin.charCodeAt(i%pin.length)))));
-}
-
-let PIN = localStorage.getItem("pin");
-
-if(!PIN){
-  PIN = prompt("Create a PIN");
-  localStorage.setItem("pin", PIN);
-}
-
-document.getElementById("lock").style.display="block";
-
-function unlock(){
-  if(pin.value===PIN){
-    lock.style.display="none";
-    app.style.display="block";
+/* ---------- DEVICE AUTH (WebAuthn) ---------- */
+async function unlock() {
+  try {
+    await navigator.credentials.get({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        userVerification: "required",
+        timeout: 60000
+      }
+    });
+    lock.classList.add("hidden");
+    app.classList.remove("hidden");
     render();
+  } catch {
+    alert("Verification required");
   }
 }
 
-let accounts=[];
-function load(){
-  const raw=localStorage.getItem("vault");
-  if(raw) accounts=JSON.parse(decrypt(raw,PIN));
+/* ---------- STORAGE ---------- */
+let accounts = JSON.parse(localStorage.getItem("vault")||"[]");
+function save(){localStorage.setItem("vault",JSON.stringify(accounts));}
+
+/* ---------- TOTP ---------- */
+function base32(s){
+  const c="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let b="",o=[];
+  s=s.replace(/=+$/,"").toUpperCase();
+  for(let x of s)b+=c.indexOf(x).toString(2).padStart(5,"0");
+  for(let i=0;i+8<=b.length;i+=8)o.push(parseInt(b.slice(i,i+8),2));
+  return new Uint8Array(o);
 }
-function save(){
-  localStorage.setItem("vault", encrypt(JSON.stringify(accounts),PIN));
+async function totp(sec){
+  let t=Math.floor(Date.now()/1000/30);
+  let msg=new Uint8Array(8);
+  for(let i=7;i>=0;i--){msg[i]=t&255;t>>=8}
+  let key=await crypto.subtle.importKey("raw",base32(sec),{name:"HMAC",hash:"SHA-1"},false,["sign"]);
+  let h=new Uint8Array(await crypto.subtle.sign("HMAC",key,msg));
+  let o=h[h.length-1]&15;
+  return (((h[o]&127)<<24)|(h[o+1]<<16)|(h[o+2]<<8)|h[o+3])%1e6
+    .toString().padStart(6,"0");
 }
 
-function base32Decode(str){
-  const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-  let bits="", bytes=[];
-  str=str.replace(/=+$/,"").toUpperCase();
-  for(let c of str) bits+=chars.indexOf(c).toString(2).padStart(5,"0");
-  for(let i=0;i+8<=bits.length;i+=8) bytes.push(parseInt(bits.substr(i,8),2));
-  return new Uint8Array(bytes);
-}
-
-async function totp(secret){
-  const key=base32Decode(secret);
-  let epoch=Math.floor(Date.now()/1000/30);
-  const msg=new Uint8Array(8);
-  for(let i=7;i>=0;i--){msg[i]=epoch&255;epoch>>=8}
-  const k=await crypto.subtle.importKey("raw",key,{name:"HMAC",hash:"SHA-1"},false,["sign"]);
-  const h=new Uint8Array(await crypto.subtle.sign("HMAC",k,msg));
-  const o=h[h.length-1]&15;
-  const code=(((h[o]&127)<<24)|(h[o+1]<<16)|(h[o+2]<<8)|h[o+3])%1000000;
-  return code.toString().padStart(6,"0");
-}
-
-function addManual(){
-  accounts.push({name:name.value,secret:secret.value});
-  save(); render();
-  name.value=secret.value="";
-}
-
-function scanQR(input){
-  const img=new Image();
-  const c=document.createElement("canvas");
-  const x=c.getContext("2d");
-  img.onload=()=>{
-    c.width=img.width;c.height=img.height;
-    x.drawImage(img,0,0);
-    const d=x.getImageData(0,0,c.width,c.height);
-    const qr=jsQR(d.data,c.width,c.height);
-    if(!qr)return alert("QR not found");
-    const u=new URL(qr.data);
-    accounts.push({
-      name:u.searchParams.get("issuer")||"Account",
-      secret:u.searchParams.get("secret")
-    });
-    save(); render();
-  };
-  img.src=URL.createObjectURL(input.files[0]);
+/* ---------- UI ---------- */
+function add(){
+  accounts.push({issuer:issuer.value,secret:secret.value});
+  save(); issuer.value=secret.value="";
+  render();
 }
 
 async function render(){
-  load();
-  accountsDiv.innerHTML="";
-  for(let i=0;i<accounts.length;i++){
-    const a=accounts[i];
-    const code=await totp(a.secret);
-    const d=document.createElement("div");
+  list.innerHTML="";
+  let remain=30-(Math.floor(Date.now()/1000)%30);
+  for(let a of accounts){
+    let c=await totp(a.secret);
+    let d=document.createElement("div");
     d.className="card";
-    d.innerHTML=`<b>${a.name}</b>
-    <div class="code">${code}</div>
-    <button onclick="del(${i})">Delete</button>`;
-    accountsDiv.appendChild(d);
+    d.innerHTML=`
+      <div class="issuer">${a.issuer}</div>
+      <div class="code">${c}</div>
+      <div class="progress"><div class="bar" style="width:${remain/30*100}%"></div></div>
+    `;
+    list.appendChild(d);
   }
 }
-
-function del(i){accounts.splice(i,1);save();render()}
 setInterval(render,1000);
 </script>
 
