@@ -1,91 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Authenticator</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secure Authenticator</title>
 <link rel="manifest" href="manifest.json">
 
 <style>
 :root {
-  --bg:#0b0f1a;
-  --card:#151a33;
-  --accent:#4f7cff;
+  --bg: #0b0f1a;
+  --card: #151a33;
+  --accent: #4f7cff;
+  --text: #fff;
 }
 body {
   margin:0;
-  background:var(--bg);
-  color:#fff;
   font-family: system-ui, -apple-system;
+  background: var(--bg);
+  color: var(--text);
 }
 header {
-  padding:18px;
-  font-size:22px;
-  font-weight:600;
+  font-size: 22px;
+  font-weight: 600;
+  padding: 18px;
 }
 .card {
-  background:var(--card);
-  margin:12px;
-  padding:16px;
-  border-radius:18px;
+  background: var(--card);
+  margin: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  transition: transform 0.2s;
 }
-input,button {
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:14px;
-  margin-top:10px;
-  font-size:15px;
+.card:hover {
+  transform: scale(1.02);
+}
+input, button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 14px;
+  margin-top: 10px;
+  font-size: 15px;
 }
 button {
-  background:var(--accent);
-  color:#fff;
-  font-weight:600;
+  background: var(--accent);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
 }
 .code {
-  font-size:34px;
-  letter-spacing:4px;
-  margin-top:6px;
+  font-size: 34px;
+  letter-spacing: 4px;
+  margin-top: 6px;
+  font-family: monospace;
 }
 .issuer {
-  opacity:.8;
-  font-size:14px;
+  opacity: 0.8;
+  font-size: 14px;
 }
 .progress {
-  height:4px;
-  background:#2a2f55;
-  border-radius:5px;
-  overflow:hidden;
-  margin-top:10px;
+  height: 4px;
+  background: #2a2f55;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: 10px;
 }
 .bar {
-  height:100%;
-  background:var(--accent);
+  height: 100%;
+  background: var(--accent);
+  transition: width 1s linear;
 }
-.hidden { display:none; }
+.hidden { display: none; }
 </style>
 </head>
 <body>
 
-<header>Authenticator</header>
+<header>Secure Authenticator</header>
 
+<!-- Lock screen using device PIN / biometrics -->
 <div id="lock" class="card">
-  <h3>Verify to unlock</h3>
-  <button onclick="unlock()">Use device security</button>
+  <h3>Unlock with device security</h3>
+  <button onclick="unlock()">Unlock</button>
 </div>
 
+<!-- App -->
 <div id="app" class="hidden">
   <div class="card">
-    <input id="issuer" placeholder="Issuer (Google, Roblox)">
+    <input id="issuer" placeholder="Issuer (Google, Roblox, etc.)">
     <input id="secret" placeholder="Secret key (Base32)">
-    <button onclick="add()">Add account</button>
+    <button onclick="addAccount()">Add Account</button>
+    <input type="file" accept="image/*" onchange="scanQR(this)">
   </div>
   <div id="list"></div>
 </div>
 
+<!-- QR scanning library -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+
 <script>
-/* ---------- DEVICE AUTH (WebAuthn) ---------- */
+/* ------------------- DEVICE AUTHENTICATION ------------------- */
+// Uses device PIN/fingerprint/Face ID on Android & iOS
 async function unlock() {
+  if(!('credentials' in navigator)) {
+    // fallback alert if device doesn't support WebAuthn API
+    alert("Device security required. Enter PIN/fingerprint.");
+    showApp();
+    return;
+  }
   try {
     await navigator.credentials.get({
       publicKey: {
@@ -94,62 +115,108 @@ async function unlock() {
         timeout: 60000
       }
     });
-    lock.classList.add("hidden");
-    app.classList.remove("hidden");
-    render();
+    showApp();
   } catch {
-    alert("Verification required");
+    alert("Device authentication failed. Try again.");
   }
 }
 
-/* ---------- STORAGE ---------- */
-let accounts = JSON.parse(localStorage.getItem("vault")||"[]");
-function save(){localStorage.setItem("vault",JSON.stringify(accounts));}
-
-/* ---------- TOTP ---------- */
-function base32(s){
-  const c="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-  let b="",o=[];
-  s=s.replace(/=+$/,"").toUpperCase();
-  for(let x of s)b+=c.indexOf(x).toString(2).padStart(5,"0");
-  for(let i=0;i+8<=b.length;i+=8)o.push(parseInt(b.slice(i,i+8),2));
-  return new Uint8Array(o);
-}
-async function totp(sec){
-  let t=Math.floor(Date.now()/1000/30);
-  let msg=new Uint8Array(8);
-  for(let i=7;i>=0;i--){msg[i]=t&255;t>>=8}
-  let key=await crypto.subtle.importKey("raw",base32(sec),{name:"HMAC",hash:"SHA-1"},false,["sign"]);
-  let h=new Uint8Array(await crypto.subtle.sign("HMAC",key,msg));
-  let o=h[h.length-1]&15;
-  return (((h[o]&127)<<24)|(h[o+1]<<16)|(h[o+2]<<8)|h[o+3])%1e6
-    .toString().padStart(6,"0");
-}
-
-/* ---------- UI ---------- */
-function add(){
-  accounts.push({issuer:issuer.value,secret:secret.value});
-  save(); issuer.value=secret.value="";
+function showApp() {
+  lock.classList.add("hidden");
+  app.classList.remove("hidden");
   render();
 }
 
-async function render(){
-  list.innerHTML="";
-  let remain=30-(Math.floor(Date.now()/1000)%30);
-  for(let a of accounts){
-    let c=await totp(a.secret);
-    let d=document.createElement("div");
-    d.className="card";
-    d.innerHTML=`
+/* ------------------- STORAGE ------------------- */
+let accounts = JSON.parse(localStorage.getItem("vault") || "[]");
+
+function save() {
+  localStorage.setItem("vault", JSON.stringify(accounts));
+}
+
+/* ------------------- TOTP ENGINE ------------------- */
+function base32Decode(str) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "", bytes = [];
+  str = str.replace(/=+$/, "").toUpperCase();
+  for (let c of str) bits += chars.indexOf(c).toString(2).padStart(5,"0");
+  for (let i=0;i+8<=bits.length;i+=8) bytes.push(parseInt(bits.substr(i,8),2));
+  return new Uint8Array(bytes);
+}
+
+async function totp(secret) {
+  const key = base32Decode(secret);
+  let epoch = Math.floor(Date.now()/1000/30);
+  const msg = new Uint8Array(8);
+  for (let i=7;i>=0;i--) { msg[i] = epoch & 0xff; epoch >>= 8; }
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw", key, {name:"HMAC", hash:"SHA-1"}, false, ["sign"]
+  );
+  const hmac = new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, msg));
+  const offset = hmac[hmac.length-1] & 0xf;
+  const code = (((hmac[offset]&0x7f)<<24)|((hmac[offset+1]&0xff)<<16)|((hmac[offset+2]&0xff)<<8)|(hmac[offset+3]&0xff)) % 1000000;
+  return code.toString().padStart(6,"0");
+}
+
+/* ------------------- ACCOUNT MANAGEMENT ------------------- */
+function addAccount() {
+  if(!issuer.value || !secret.value) return;
+  accounts.push({issuer: issuer.value, secret: secret.value});
+  save();
+  issuer.value = secret.value = "";
+  render();
+}
+
+function delAccount(index) {
+  accounts.splice(index,1);
+  save();
+  render();
+}
+
+/* ------------------- QR SCANNING ------------------- */
+function scanQR(input) {
+  const file = input.files[0];
+  const img = new Image();
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  img.onload = () => {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img,0,0);
+    const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+    const qr = jsQR(imageData.data, canvas.width, canvas.height);
+    if(!qr) return alert("QR code not detected");
+    const url = new URL(qr.data);
+    const secret = url.searchParams.get("secret");
+    const issuer = url.searchParams.get("issuer") || "Account";
+    accounts.push({issuer, secret});
+    save();
+    render();
+  };
+  img.src = URL.createObjectURL(file);
+}
+
+/* ------------------- RENDER ACCOUNTS ------------------- */
+async function render() {
+  list.innerHTML = "";
+  const remaining = 30 - (Math.floor(Date.now()/1000) % 30);
+  for(let i=0;i<accounts.length;i++) {
+    const a = accounts[i];
+    const code = await totp(a.secret);
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
       <div class="issuer">${a.issuer}</div>
-      <div class="code">${c}</div>
-      <div class="progress"><div class="bar" style="width:${remain/30*100}%"></div></div>
+      <div class="code">${code}</div>
+      <div class="progress"><div class="bar" style="width:${remaining/30*100}%"></div></div>
+      <button onclick="delAccount(${i})">Delete</button>
     `;
-    list.appendChild(d);
+    list.appendChild(div);
   }
 }
-setInterval(render,1000);
-</script>
 
+/* ------------------- UPDATE ENGINE ------------------- */
+setInterval(render, 1000);
+</script>
 </body>
 </html>
