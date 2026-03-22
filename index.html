@@ -3,107 +3,486 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Secure Authenticator</title>
+<title>RoSecure Authenticator</title>
 <link rel="manifest" href="manifest.json">
-
+<meta name="theme-color" content="#2563ff">
 <style>
 :root {
-  --bg: #0b0f1a;
-  --card: #151a33;
-  --accent: #4f7cff;
-  --text: #fff;
+  --bg: #061126;
+  --panel: rgba(11, 25, 53, 0.88);
+  --panel-strong: #10244a;
+  --panel-soft: #183464;
+  --accent: #2563ff;
+  --accent-2: #60a5fa;
+  --success: #38bdf8;
+  --danger: #f87171;
+  --text: #f8fbff;
+  --muted: #9fb6db;
+  --border: rgba(151, 182, 255, 0.16);
+  --shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
 }
+* { box-sizing: border-box; }
+html { color-scheme: dark; }
 body {
-  margin:0;
-  font-family: system-ui, -apple-system;
-  background: var(--bg);
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(37, 99, 255, 0.32), transparent 32%),
+    linear-gradient(180deg, #08101f 0%, #061126 100%);
   color: var(--text);
+  min-height: 100vh;
 }
-header {
-  font-size: 22px;
-  font-weight: 600;
-  padding: 18px;
-}
-.card {
-  background: var(--card);
-  margin: 12px;
-  padding: 16px;
-  border-radius: 18px;
-  transition: transform 0.2s;
-}
-.card:hover {
-  transform: scale(1.02);
-}
-input, button {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 14px;
-  margin-top: 10px;
-  font-size: 15px;
-}
+button, input, textarea { font: inherit; }
 button {
-  background: var(--accent);
-  color: var(--text);
-  font-weight: 600;
+  border: 0;
   cursor: pointer;
+  transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
 }
-.code {
-  font-size: 34px;
-  letter-spacing: 4px;
-  margin-top: 6px;
-  font-family: monospace;
+button:hover { transform: translateY(-1px); }
+button:active { transform: translateY(0); }
+input, textarea {
+  width: 100%;
+  border: 1px solid rgba(191, 219, 254, 0.18);
+  background: rgba(5, 13, 28, 0.78);
+  color: var(--text);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-top: 10px;
 }
-.issuer {
-  opacity: 0.8;
+input::placeholder, textarea::placeholder { color: #7e97be; }
+textarea { min-height: 88px; resize: vertical; }
+main {
+  width: min(1120px, calc(100% - 24px));
+  margin: 0 auto;
+  padding: 20px 0 48px;
+}
+.hero {
+  display: grid;
+  grid-template-columns: 1.15fr .85fr;
+  gap: 18px;
+  align-items: stretch;
+}
+.panel {
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+}
+.hero-card {
+  padding: 24px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.16);
+  color: #d8ebff;
+  font-size: 13px;
+  letter-spacing: .02em;
+}
+.hero h1 {
+  font-size: clamp(32px, 7vw, 56px);
+  line-height: 1;
+  margin: 18px 0 12px;
+}
+.hero p {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0;
+}
+.hero-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+.hero-list .mini {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(8, 20, 42, 0.82);
+  border: 1px solid rgba(191, 219, 254, 0.1);
+}
+.mini strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+.lock-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+}
+.lock-card h2, .section-title { margin: 0; }
+.lock-card p, .helper, .empty-copy, .tip-list li, .footnote {
+  color: var(--muted);
+}
+.primary-btn, .secondary-btn, .ghost-btn, .danger-btn {
+  width: 100%;
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-weight: 700;
+}
+.primary-btn {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(37, 99, 255, 0.35);
+}
+.secondary-btn {
+  background: rgba(96, 165, 250, 0.16);
+  color: #dcecff;
+}
+.ghost-btn {
+  background: rgba(10, 22, 46, 0.85);
+  color: #dcecff;
+  border: 1px solid rgba(191, 219, 254, 0.12);
+}
+.danger-btn {
+  background: rgba(248, 113, 113, 0.12);
+  color: #ffd9d9;
+}
+.status {
+  min-height: 24px;
+  margin-top: 14px;
   font-size: 14px;
 }
+.status[data-tone="error"] { color: #ffb4b4; }
+.status[data-tone="success"] { color: #a5f3fc; }
+.hidden { display: none !important; }
+.content-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+.section-card {
+  padding: 22px;
+}
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  margin-top: 12px;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.actions-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.actions-row > * { flex: 1; }
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+}
+.toolbar .search {
+  flex: 1 1 220px;
+  min-width: 180px;
+  margin-top: 0;
+}
+.count-chip {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.12);
+  color: #dcecff;
+  font-size: 14px;
+}
+.list {
+  margin-top: 18px;
+  display: grid;
+  gap: 14px;
+}
+.account-card {
+  background: linear-gradient(180deg, rgba(10, 24, 48, 0.92), rgba(8, 19, 39, 0.92));
+  border: 1px solid rgba(147, 197, 253, 0.13);
+  border-radius: 22px;
+  padding: 18px;
+}
+.account-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+}
+.account-name {
+  font-size: 18px;
+  font-weight: 800;
+}
+.account-meta {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 4px;
+}
+.code-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+  margin-top: 16px;
+}
+.code {
+  font-size: clamp(32px, 5vw, 42px);
+  line-height: 1;
+  letter-spacing: .22em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.progress-wrap {
+  margin-top: 16px;
+}
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 6px;
+}
 .progress {
-  height: 4px;
-  background: #2a2f55;
-  border-radius: 5px;
+  height: 8px;
+  background: rgba(96, 165, 250, 0.12);
+  border-radius: 999px;
   overflow: hidden;
-  margin-top: 10px;
 }
 .bar {
   height: 100%;
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--success), var(--accent));
+  border-radius: inherit;
   transition: width 1s linear;
 }
-.hidden { display: none; }
+.account-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.account-actions button { flex: 1; }
+.tip-list {
+  margin: 14px 0 0;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+.empty-state {
+  text-align: center;
+  padding: 32px 18px;
+  border: 1px dashed rgba(147, 197, 253, 0.2);
+  border-radius: 22px;
+  color: var(--muted);
+}
+.install-banner {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(103, 232, 249, 0.16);
+}
+@media (max-width: 880px) {
+  .hero, .content-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  main { width: min(100% - 16px, 1120px); }
+  .hero-card, .lock-card, .section-card { padding: 18px; }
+  .hero-list, .grid-2 { grid-template-columns: 1fr; }
+  .account-top, .code-row, .account-actions, .actions-row { flex-direction: column; }
+  .code { letter-spacing: .14em; }
+}
 </style>
 </head>
 <body>
+<main>
+  <section class="hero">
+    <article class="panel hero-card">
+      <div class="badge">🎮 Optimized for Roblox players on mobile, tablet, and desktop</div>
+      <h1>RoSecure Authenticator</h1>
+      <p>
+        A polished, installable Roblox 2-step verification companion built to feel like a native app on every device.
+        Add secrets manually, paste full <code>otpauth://</code> links, or import by QR image when available.
+      </p>
+      <div class="hero-list">
+        <div class="mini">
+          <strong>Cross-device UX</strong>
+          Responsive layout, large touch targets, and PWA install support.
+        </div>
+        <div class="mini">
+          <strong>Fast code access</strong>
+          Copy current codes in one tap with a visible refresh countdown.
+        </div>
+        <div class="mini">
+          <strong>Roblox focused</strong>
+          Dedicated onboarding and labels tailored to Roblox 2FA workflows.
+        </div>
+        <div class="mini">
+          <strong>Offline capable</strong>
+          Service worker support keeps the interface available without a connection.
+        </div>
+      </div>
+    </article>
 
-<header>Secure Authenticator</header>
+    <aside id="lock" class="panel lock-card">
+      <div>
+        <h2>Unlock your vault</h2>
+        <p>
+          Use device security where supported. If your browser does not expose WebAuthn user verification,
+          the app falls back to local-only access and clearly tells you.
+        </p>
+        <ul class="tip-list">
+          <li>Best on iPhone, Android, Chromebook, Windows, and macOS browsers that support installable PWAs.</li>
+          <li>Great for quickly entering Roblox 6-digit verification codes while logging in.</li>
+          <li>Everything stays in this browser's local storage in the current implementation.</li>
+        </ul>
+      </div>
+      <div>
+        <button class="primary-btn" onclick="unlock()">Unlock with device security</button>
+        <div id="lockStatus" class="status"></div>
+      </div>
+    </aside>
+  </section>
 
-<!-- Lock screen using device PIN / biometrics -->
-<div id="lock" class="card">
-  <h3>Unlock with device security</h3>
-  <button onclick="unlock()">Unlock</button>
-</div>
+  <section id="app" class="hidden">
+    <div id="installBanner" class="install-banner hidden">
+      <strong>Install this app for the best all-device experience.</strong>
+      <div class="helper">On supported browsers, install it to your home screen or desktop for fast Roblox code access.</div>
+      <div class="actions-row">
+        <button id="installBtn" class="secondary-btn hidden">Install app</button>
+        <button class="ghost-btn" onclick="dismissInstallBanner()">Dismiss</button>
+      </div>
+    </div>
 
-<!-- App -->
-<div id="app" class="hidden">
-  <div class="card">
-    <input id="issuer" placeholder="Issuer (Google, Roblox, etc.)">
-    <input id="secret" placeholder="Secret key (Base32)">
-    <button onclick="addAccount()">Add Account</button>
-    <input type="file" accept="image/*" onchange="scanQR(this)">
-  </div>
-  <div id="list"></div>
-</div>
+    <div class="content-grid">
+      <section class="panel section-card">
+        <h2 class="section-title">Add a Roblox authenticator</h2>
+        <div class="helper">Paste a Roblox secret key, or import a full OTP URI exported from another app.</div>
 
-<!-- QR scanning library -->
+        <label for="issuer">Service / issuer</label>
+        <input id="issuer" placeholder="Roblox">
+
+        <div class="grid-2">
+          <div>
+            <label for="label">Account label</label>
+            <input id="label" placeholder="Main account">
+          </div>
+          <div>
+            <label for="secret">Base32 secret</label>
+            <input id="secret" autocomplete="off" spellcheck="false" placeholder="JBSWY3DPEHPK3PXP">
+          </div>
+        </div>
+
+        <label for="otpUri">OTP URI (optional)</label>
+        <textarea id="otpUri" placeholder="otpauth://totp/Roblox:YourName?secret=...&issuer=Roblox"></textarea>
+
+        <div class="actions-row">
+          <button class="primary-btn" onclick="addAccount()">Save account</button>
+          <label class="secondary-btn" style="display:flex;align-items:center;justify-content:center;margin-top:0;cursor:pointer;">
+            Import QR image
+            <input type="file" accept="image/*" onchange="scanQR(this)" hidden>
+          </label>
+        </div>
+
+        <div id="formStatus" class="status"></div>
+
+        <div style="margin-top:24px;">
+          <h3 class="section-title" style="font-size:18px;">Roblox setup tips</h3>
+          <ul class="tip-list">
+            <li>Prefer naming accounts clearly if you manage multiple Roblox profiles.</li>
+            <li>Keep a backup of your recovery codes outside this app.</li>
+            <li>For the strongest protection, also secure the browser profile or device with a PIN or biometrics.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="panel section-card">
+        <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+          <div>
+            <h2 class="section-title">Your live codes</h2>
+            <div class="helper">Instant access to current Roblox and other TOTP codes.</div>
+          </div>
+          <div class="count-chip"><span>⏱</span><span id="countdown">Refreshing in 30s</span></div>
+        </div>
+
+        <div class="toolbar">
+          <input id="search" class="search" placeholder="Search accounts" oninput="render()">
+          <button class="ghost-btn" style="width:auto;padding-inline:18px;" onclick="sortAccounts()">Sort A–Z</button>
+          <button class="ghost-btn" style="width:auto;padding-inline:18px;" onclick="clearAll()">Clear all</button>
+        </div>
+
+        <div id="list" class="list"></div>
+      </section>
+    </div>
+  </section>
+</main>
+
 <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
-
 <script>
-/* ------------------- DEVICE AUTHENTICATION ------------------- */
-// Uses device PIN/fingerprint/Face ID on Android & iOS
+let deferredPrompt = null;
+const storageKey = "rosecure-vault";
+let accounts = loadAccounts();
+
+function $(id) {
+  return document.getElementById(id);
+}
+
+function setStatus(target, message = "", tone = "") {
+  const el = $(target);
+  el.textContent = message;
+  el.dataset.tone = tone;
+}
+
+function loadAccounts() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAccounts() {
+  localStorage.setItem(storageKey, JSON.stringify(accounts));
+}
+
+function normalizeSecret(value) {
+  return value.replace(/\s+/g, "").toUpperCase();
+}
+
+function isValidBase32(secret) {
+  return /^[A-Z2-7]+=*$/.test(secret);
+}
+
+function parseOtpUri(value) {
+  if (!value.trim()) return null;
+  let url;
+  try {
+    url = new URL(value.trim());
+  } catch {
+    throw new Error("OTP URI is not a valid URL.");
+  }
+  if (url.protocol !== "otpauth:") {
+    throw new Error("Only otpauth:// URIs are supported.");
+  }
+  const secret = normalizeSecret(url.searchParams.get("secret") || "");
+  if (!secret || !isValidBase32(secret)) {
+    throw new Error("OTP URI is missing a valid Base32 secret.");
+  }
+  const issuer = url.searchParams.get("issuer") || decodeURIComponent(url.pathname.split(":")[0].replace(/^\//, "")) || "Roblox";
+  const label = decodeURIComponent((url.pathname.split(":")[1] || "").replace(/^\//, "")) || "Account";
+  return { issuer, label, secret };
+}
+
 async function unlock() {
-  if(!('credentials' in navigator)) {
-    // fallback alert if device doesn't support WebAuthn API
-    alert("Device security required. Enter PIN/fingerprint.");
+  if (!("credentials" in navigator) || typeof PublicKeyCredential === "undefined") {
+    setStatus("lockStatus", "This browser does not expose device verification here. Opening local vault mode.", "success");
     showApp();
     return;
   }
@@ -111,112 +490,258 @@ async function unlock() {
     await navigator.credentials.get({
       publicKey: {
         challenge: crypto.getRandomValues(new Uint8Array(32)),
+        timeout: 60000,
         userVerification: "required",
-        timeout: 60000
+        allowCredentials: []
       }
     });
+    setStatus("lockStatus", "Unlocked successfully.", "success");
     showApp();
   } catch {
-    alert("Device authentication failed. Try again.");
+    setStatus("lockStatus", "Device verification was canceled or unavailable. Try again or use a supported browser.", "error");
   }
 }
 
 function showApp() {
-  lock.classList.add("hidden");
-  app.classList.remove("hidden");
+  $("lock").classList.add("hidden");
+  $("app").classList.remove("hidden");
   render();
 }
 
-/* ------------------- STORAGE ------------------- */
-let accounts = JSON.parse(localStorage.getItem("vault") || "[]");
+function addAccount() {
+  setStatus("formStatus");
+  try {
+    const otpData = parseOtpUri($("otpUri").value);
+    const issuer = (otpData?.issuer || $("issuer").value || "Roblox").trim();
+    const label = (otpData?.label || $("label").value || "Account").trim();
+    const secret = normalizeSecret(otpData?.secret || $("secret").value);
 
-function save() {
-  localStorage.setItem("vault", JSON.stringify(accounts));
+    if (!secret) {
+      throw new Error("Enter a secret key or paste an OTP URI.");
+    }
+    if (!isValidBase32(secret)) {
+      throw new Error("Secret keys must be Base32 using A-Z and 2-7.");
+    }
+
+    accounts.unshift({
+      id: crypto.randomUUID(),
+      issuer,
+      label,
+      secret,
+      createdAt: Date.now()
+    });
+    saveAccounts();
+    $("issuer").value = "Roblox";
+    $("label").value = "";
+    $("secret").value = "";
+    $("otpUri").value = "";
+    setStatus("formStatus", `Saved ${issuer} · ${label}.`, "success");
+    render();
+  } catch (error) {
+    setStatus("formStatus", error.message, "error");
+  }
 }
 
-/* ------------------- TOTP ENGINE ------------------- */
+function deleteAccount(id) {
+  accounts = accounts.filter(account => account.id !== id);
+  saveAccounts();
+  render();
+}
+
+function sortAccounts() {
+  accounts.sort((a, b) => `${a.issuer} ${a.label}`.localeCompare(`${b.issuer} ${b.label}`));
+  saveAccounts();
+  render();
+}
+
+function clearAll() {
+  if (!accounts.length) {
+    setStatus("formStatus", "There are no accounts to clear.", "error");
+    return;
+  }
+  if (!confirm("Remove every saved account from this device?")) return;
+  accounts = [];
+  saveAccounts();
+  render();
+  setStatus("formStatus", "All saved accounts were removed.", "success");
+}
+
+async function copyCode(code, issuer, label) {
+  try {
+    await navigator.clipboard.writeText(code);
+    setStatus("formStatus", `Copied code for ${issuer} · ${label}.`, "success");
+  } catch {
+    setStatus("formStatus", "Copy failed in this browser. You can still read the code on screen.", "error");
+  }
+}
+
 function base32Decode(str) {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-  let bits = "", bytes = [];
+  let bits = "";
+  const bytes = [];
   str = str.replace(/=+$/, "").toUpperCase();
-  for (let c of str) bits += chars.indexOf(c).toString(2).padStart(5,"0");
-  for (let i=0;i+8<=bits.length;i+=8) bytes.push(parseInt(bits.substr(i,8),2));
+  for (const c of str) {
+    const idx = chars.indexOf(c);
+    if (idx === -1) throw new Error("Invalid Base32 character.");
+    bits += idx.toString(2).padStart(5, "0");
+  }
+  for (let i = 0; i + 8 <= bits.length; i += 8) {
+    bytes.push(parseInt(bits.slice(i, i + 8), 2));
+  }
   return new Uint8Array(bytes);
 }
 
 async function totp(secret) {
   const key = base32Decode(secret);
-  let epoch = Math.floor(Date.now()/1000/30);
+  let epoch = Math.floor(Date.now() / 1000 / 30);
   const msg = new Uint8Array(8);
-  for (let i=7;i>=0;i--) { msg[i] = epoch & 0xff; epoch >>= 8; }
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw", key, {name:"HMAC", hash:"SHA-1"}, false, ["sign"]
-  );
+  for (let i = 7; i >= 0; i--) {
+    msg[i] = epoch & 0xff;
+    epoch >>= 8;
+  }
+  const cryptoKey = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
   const hmac = new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, msg));
-  const offset = hmac[hmac.length-1] & 0xf;
-  const code = (((hmac[offset]&0x7f)<<24)|((hmac[offset+1]&0xff)<<16)|((hmac[offset+2]&0xff)<<8)|(hmac[offset+3]&0xff)) % 1000000;
-  return code.toString().padStart(6,"0");
+  const offset = hmac[hmac.length - 1] & 0xf;
+  const code = (((hmac[offset] & 0x7f) << 24) | ((hmac[offset + 1] & 0xff) << 16) | ((hmac[offset + 2] & 0xff) << 8) | (hmac[offset + 3] & 0xff)) % 1000000;
+  return code.toString().padStart(6, "0");
 }
 
-/* ------------------- ACCOUNT MANAGEMENT ------------------- */
-function addAccount() {
-  if(!issuer.value || !secret.value) return;
-  accounts.push({issuer: issuer.value, secret: secret.value});
-  save();
-  issuer.value = secret.value = "";
-  render();
-}
-
-function delAccount(index) {
-  accounts.splice(index,1);
-  save();
-  render();
-}
-
-/* ------------------- QR SCANNING ------------------- */
-function scanQR(input) {
-  const file = input.files[0];
+async function scanQR(input) {
+  const file = input.files?.[0];
+  if (!file) return;
   const img = new Image();
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  img.onload = () => {
+  img.onload = async () => {
     canvas.width = img.width;
     canvas.height = img.height;
-    ctx.drawImage(img,0,0);
-    const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const qr = jsQR(imageData.data, canvas.width, canvas.height);
-    if(!qr) return alert("QR code not detected");
-    const url = new URL(qr.data);
-    const secret = url.searchParams.get("secret");
-    const issuer = url.searchParams.get("issuer") || "Account";
-    accounts.push({issuer, secret});
-    save();
-    render();
+    if (!qr) {
+      setStatus("formStatus", "QR code not detected in that image.", "error");
+      return;
+    }
+    $("otpUri").value = qr.data;
+    addAccount();
   };
+  img.onerror = () => setStatus("formStatus", "That image could not be opened.", "error");
   img.src = URL.createObjectURL(file);
+  input.value = "";
 }
 
-/* ------------------- RENDER ACCOUNTS ------------------- */
 async function render() {
+  const list = $("list");
+  const term = $("search").value.trim().toLowerCase();
+  const remaining = 30 - (Math.floor(Date.now() / 1000) % 30);
+  $("countdown").textContent = `Refreshing in ${remaining}s`;
   list.innerHTML = "";
-  const remaining = 30 - (Math.floor(Date.now()/1000) % 30);
-  for(let i=0;i<accounts.length;i++) {
-    const a = accounts[i];
-    const code = await totp(a.secret);
-    const div = document.createElement("div");
-    div.className = "card";
-    div.innerHTML = `
-      <div class="issuer">${a.issuer}</div>
-      <div class="code">${code}</div>
-      <div class="progress"><div class="bar" style="width:${remaining/30*100}%"></div></div>
-      <button onclick="delAccount(${i})">Delete</button>
+
+  const filtered = accounts.filter(account => (`${account.issuer} ${account.label}`).toLowerCase().includes(term));
+
+  if (!filtered.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size:40px;margin-bottom:10px;">🔐</div>
+        <strong>${accounts.length ? "No matching accounts" : "No accounts saved yet"}</strong>
+        <div class="empty-copy" style="margin-top:8px;">${accounts.length ? "Try a different search." : "Add your Roblox 2FA secret to generate live 6-digit codes here."}</div>
+      </div>
     `;
-    list.appendChild(div);
+    return;
+  }
+
+  for (const account of filtered) {
+    try {
+      const code = await totp(account.secret);
+      const section = document.createElement("article");
+      section.className = "account-card";
+      section.innerHTML = `
+        <div class="account-top">
+          <div>
+            <div class="account-name">${escapeHtml(account.label)}</div>
+            <div class="account-meta">${escapeHtml(account.issuer)} · ${maskSecret(account.secret)}</div>
+          </div>
+          <div class="badge" style="padding:7px 10px;">Live</div>
+        </div>
+        <div class="code-row">
+          <div class="code">${formatCode(code)}</div>
+          <div class="helper">Use this for Roblox 2-step verification.</div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Current code window</span><span>${remaining}s left</span></div>
+          <div class="progress"><div class="bar" style="width:${(remaining / 30) * 100}%"></div></div>
+        </div>
+        <div class="account-actions">
+          <button class="secondary-btn" onclick="copyCode('${code}','${escapeJs(account.issuer)}','${escapeJs(account.label)}')">Copy code</button>
+          <button class="danger-btn" onclick="deleteAccount('${account.id}')">Delete</button>
+        </div>
+      `;
+      list.appendChild(section);
+    } catch {
+      const section = document.createElement("article");
+      section.className = "account-card";
+      section.innerHTML = `
+        <div class="account-name">${escapeHtml(account.label)}</div>
+        <div class="account-meta">${escapeHtml(account.issuer)}</div>
+        <div class="status" data-tone="error">This secret could not be decoded. Delete and re-add it.</div>
+        <div class="account-actions">
+          <button class="danger-btn" onclick="deleteAccount('${account.id}')">Delete</button>
+        </div>
+      `;
+      list.appendChild(section);
+    }
   }
 }
 
-/* ------------------- UPDATE ENGINE ------------------- */
+function formatCode(code) {
+  return `${code.slice(0, 3)} ${code.slice(3)}`;
+}
+
+function maskSecret(secret) {
+  return `${secret.slice(0, 4)}••••${secret.slice(-4)}`;
+}
+
+function escapeHtml(value) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function escapeJs(value) {
+  return value.replaceAll("\\", "\\\\").replaceAll("'", "\\'");
+}
+
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  deferredPrompt = event;
+  $("installBanner").classList.remove("hidden");
+  $("installBtn").classList.remove("hidden");
+});
+
+$("installBtn").addEventListener("click", async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  dismissInstallBanner();
+});
+
+function dismissInstallBanner() {
+  $("installBanner").classList.add("hidden");
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+  });
+}
+
+$("issuer").value = "Roblox";
 setInterval(render, 1000);
+render();
 </script>
 </body>
 </html>
