@@ -1,13 +1,18 @@
 {
-  "name": "Secure Authenticator",
-  "short_name": "Authenticator",
-  "start_url": "/index.html",
-  "scope": "/",
+  "name": "RoSecure Authenticator",
+  "short_name": "RoSecure",
+  "description": "A Roblox-focused authenticator companion optimized for phones, tablets, and desktops.",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0b0f1a",
-  "theme_color": "#4f7cff",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#061126",
+  "theme_color": "#2563ff",
   "dir": "ltr",
   "lang": "en-US",
+  "orientation": "any",
+  "prefer_related_applications": false,
+  "categories": ["security", "utilities", "productivity"],
   "icons": [
     {
       "src": "icon-192.png",
@@ -18,6 +23,13 @@
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open Roblox codes",
+      "short_name": "Codes",
+      "url": "./index.html"
     }
   ]
 }
